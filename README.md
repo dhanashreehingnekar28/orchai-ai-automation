@@ -116,9 +116,7 @@ Tests cover input-derived OCR, local profile routing, study-pack extraction, pla
 
 OrchAI builds on work in LLM reasoning and tool use, LLM-based orchestration, cost-aware model selection, and Android and on-device AI:
 
-1. ReAct: [Reasoning and Acting in LLMs] ] ReAct: Reasoning and Acting in LLMs
-<img width="776" height="88" alt="image" src="https://github.com/user-attachments/assets/9827b686-6120-4f14-92ab-e455acc11722" />
-
+1. ReAct: Reasoning and Acting in LLMs
 2. Toolformer: LMs Teach Themselves to Use Tools
 3. HuggingGPT: Solving AI Tasks with LLM + Models
 4. FrugalGPT: Cost-aware LLM Use
