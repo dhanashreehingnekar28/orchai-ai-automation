@@ -1,42 +1,47 @@
-# OrchAI
+# ORCHAI
 
-OrchAI is a frontend-only, deterministic prototype of a general-purpose Android AI automation platform. It turns a natural-language request into an editable workflow, chooses models per step, routes around device constraints, and pauses before sensitive actions.
+ORCHAI accepts a natural-language task, identifies its input and required capabilities, applies the selected device policy, then uses an installed local tool or a configured provider. Command Center is the automatic user entry point; Workflow Builder is the separate manual editor.
 
-## Run locally
+## Run
 
 ```bash
 npm install
 npm run dev
 ```
 
-Build the production bundle with `npm run build`.
+The development command starts the Vite UI and local Node API. `npm run build` builds the production UI; `npm start` serves the built UI and API. Local uploads, generated files, workflows, and execution history use `storage/runtime` unless `ORCHAI_STORAGE_DIR` points elsewhere.
 
-## Routes
+## Providers and credentials
 
-- `/` — landing page and orchestration story
-- `/app` — command center and prompt-to-workflow entry
-- `/app/workflows` — workflow library and previews
-- `/app/builder` — editable workflow canvas, decision panel, and JSON view
-- `/app/models` — prototype capability registry
-- `/app/device` — simulated resources, device profiles, and live routing
-- `/app/history` — in-memory execution history
-- `/app/execution` — step-by-step demo execution and shared controls
-- `/app/architecture` — target architecture, feasibility, impact/scaling, and safety
-- `/app/settings` — demo speed, failure injection, and reset controls
+Set provider credentials only in `.env`; never put keys in frontend files. `.env.example` contains configuration names and non-secret defaults only.
 
-## Demo walkthrough
+- Groq is the default real provider. `openai/gpt-oss-120b` handles text reasoning and structured generation; `qwen/qwen3.8-27b` handles images; Whisper handles audio transcription.
+- Gemini remains available as the recovery provider when Groq reports a recoverable provider, timeout, rate-limit, or capability failure and `GEMINI_API_KEY` is configured. Set `ORCHAI_GEMINI_MODEL` to choose its fallback text model. It is not called for normal Groq success paths. Its text, image, PDF vision, and audio adapters remain server-side.
+- xAI is available as an optional text generation adapter when `XAI_API_KEY` is configured. It is not treated as a transcription or image adapter.
+- Provider status means configured; a successful real request is recorded as used only after the provider returns a result. Failed requests show `REAL EXECUTION UNAVAILABLE` and are saved as failed attempts.
 
-1. Open the command center and choose **Analyze my bill** (or paste the full handwritten bill request).
-2. Inspect the editable expense workflow and its model choice. The preferred local vision model is rejected because it needs more usable RAM; Gemini Flash is selected for the combined vision and OCR requirement.
-3. Run the workflow. Pause, resume, or stop it from the execution view or notification. Confirm the exact ₹1,248.50 Expense Tracker action to see the result.
-4. Run it again to see the bill extraction cache indicator. Change the device profile to **Low RAM** or **Offline** to see model routing change.
-5. Select **Study Pack** from the library to see speech-to-text, concept extraction, notes, and an expandable five-question quiz. Select **Plant Analysis** for the third executable workflow.
-6. Open **Architecture & impact** to explore live workflow counts and device profile changes alongside the impact, viability, scaling, and safety views inspired by the supplied reference slides.
+## Installed local capabilities
 
-## What is simulated
+- Tesseract.js OCR for receipt images.
+- PDF.js extraction for text-based PDFs.
+- pdf-lib for merging multiple PDFs and downloading the generated file.
+- Local study-pack extraction and plant-image color signals. These outputs are identified as local processing; plant color signals are explicitly uncertain and non-diagnostic.
+- No local language model, local speech-to-text model, or Android companion is installed. Tasks requiring those capabilities fail clearly under the applicable profile.
 
-Device RAM, battery, storage, network, Android camera/file/intent access, model availability and execution, generated content, model downloads, caching, and history are deterministic browser simulations. The browser does not control Android hardware. Sensitive external writes require an explicit confirmation in the prototype.
+## Device profiles and fallback
 
-## Backend integration seams
+Normal permits configured providers and local tools. Offline blocks cloud calls. Low RAM and Low Battery select the configured provider for ordinary text reasoning and prefer installed local OCR or image analysis where supported. Groq vision and Whisper transcription are used when their required inputs are supplied. These are server-enforced policy presets; live RAM and battery sensor readings are not connected.
 
-The workflow and model definitions live in `src/engine.ts`; deterministic model placement is in `routeStep`. `src/store.ts` holds the shared session state. Replace the prototype registry and local state transitions with async service adapters for a FastAPI/Gemini orchestrator, persist workflow JSON and run history in Supabase, and map Android camera, files, notifications, and intents to a native Kotlin/React Native shell. Keep model credentials backend-held and retain the confirmation gate for account writes.
+The centralized provider router tries Groq first, then uses Gemini only for recoverable provider failures when its key is configured. Ordinary application errors do not trigger fallback. Each actual provider attempt records provider, model, attempt number, error, duration, and fallback status. Provider selection does not alternate randomly or call both providers on successful requests.
+
+Each execution persists a shared context with request inputs, plan, ordered step inputs and structured outputs, artifacts, variables, provider attempts, and final result. Before completion, the engine verifies required steps and expected outputs.
+
+## Validation
+
+```bash
+npm run build
+npx tsc --noEmit
+npm test
+```
+
+Tests cover input-derived OCR, local profile routing, study-pack extraction, plant-image uncertainty, multi-file PDF merging, and persisted API execution.
